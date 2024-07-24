@@ -26,6 +26,11 @@ fn main() -> Result<()> {
         //                          PROLOGUE                          //
         ////////////////////////////////////////////////////////////////
         let mut scenario = Scenario::new(None).await?;
+        tracing::info!(
+            target: "client",
+            "Successfully get l1 end block number: {:?}",
+            scenario.boot.l1_end_number
+        );
 
         ////////////////////////////////////////////////////////////////
         //                   DERIVATION & EXECUTION                   //

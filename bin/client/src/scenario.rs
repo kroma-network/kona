@@ -9,7 +9,7 @@ use alloy_primitives::B256;
 use anyhow::{Ok, Result};
 use kona_executor::StatelessL2BlockExecutor;
 use kona_preimage::PreimageKey;
-use kona_primitives::{L2AttributesWithParent, L2PayloadAttributes};
+use kona_primitives::{BlockInfo, L2AttributesWithParent, L2PayloadAttributes};
 use revm::primitives::HashMap;
 
 type ExecutorType = StatelessL2BlockExecutor<
@@ -43,7 +43,7 @@ impl Scenario {
     }
 
     ///
-    pub async fn derive(&mut self) -> Result<(L2PayloadAttributes, Sealed<Header>)> {
+    pub async fn derive(&mut self) -> Result<(L2PayloadAttributes, Sealed<Header>, BlockInfo)> {
         let mut driver = DerivationDriver::new(
             self.boot.as_ref(),
             self.oracle.as_ref(),
@@ -53,10 +53,12 @@ impl Scenario {
         )
         .await
         .unwrap();
+
+        let l1_origin_block = driver.l1_cursor().unwrap();
         let L2AttributesWithParent { attributes, .. } =
             driver.produce_disputed_payload().await.unwrap();
 
-        Ok((attributes, driver.take_l2_safe_head_header()))
+        Ok((attributes, driver.take_l2_safe_head_header(), l1_origin_block))
     }
 
     /// Derivation and execution of the client program.

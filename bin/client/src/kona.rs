@@ -30,7 +30,7 @@ fn main() -> Result<()> {
         ////////////////////////////////////////////////////////////////
         //                   DERIVATION & EXECUTION                   //
         ////////////////////////////////////////////////////////////////
-        let (attributes, l2_safe_head_header) = scenario.derive().await?;
+        let (attributes, l2_safe_head_header, _l1_origin_block) = scenario.derive().await?;
         let number = scenario.execute_block(attributes, l2_safe_head_header).await?;
         let output_root = scenario.compute_output_root().await?;
 

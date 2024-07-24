@@ -29,13 +29,13 @@ pub fn main() {
     let prebuilt_preimage = sp1_zkvm::io::read::<HashMap<PreimageKey, Vec<u8>>>();
 
     kona_common::block_on(async move {
-    let mut client = Scenario::new(Some(prebuilt_preimage)).await.unwrap();
-    let (attributes, l2_safe_head_header) = client.derive().await.unwrap();
-    let number = client.execute_block(attributes, l2_safe_head_header).await.unwrap();
-    let output_root = client.compute_output_root().await.unwrap();
+        let mut client = Scenario::new(Some(prebuilt_preimage)).await.unwrap();
+        let (attributes, l2_safe_head_header, _l1_origin_block) = client.derive().await.unwrap();
+        let number = client.execute_block(attributes, l2_safe_head_header).await.unwrap();
+        let output_root = client.compute_output_root().await.unwrap();
 
-    assert_eq!(number, client.boot.l2_claim_block);
-    assert_eq!(output_root, client.boot.l2_claim);
+        assert_eq!(number, client.boot.l2_claim_block);
+        assert_eq!(output_root, client.boot.l2_claim);
     });
     // // Encocde the public values of the program.
     // let bytes = PublicValuesTuple::abi_encode(&(n, a, b));

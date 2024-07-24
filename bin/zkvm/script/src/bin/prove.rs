@@ -51,13 +51,12 @@ async fn main() -> Result<()> {
     // Setup the program.
     let (pk, vk) = client.setup(EVM_ELF);
 
-    let json_file_name = format!("../../../{}_preimages.json", args.target_l2_height);
+    let json_file_name = format!("../../preimages/{}_preimages.json", args.target_l2_height);
     let json_file = File::open(json_file_name).unwrap();
     let reader = BufReader::new(json_file);
     let parsed: HashMap<B256, Vec<u8>> = serde_json::from_reader(reader).unwrap();
     let prebuilt_preimage: HashMap<PreimageKey, Vec<u8>> =
         parsed.into_iter().map(|(k, v)| (PreimageKey::try_from(*k).ok().unwrap(), v)).collect();
-
 
     // Setup the inputs.
     let mut stdin = SP1Stdin::new();

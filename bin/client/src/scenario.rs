@@ -57,6 +57,10 @@ impl Scenario {
         let l1_origin_block = driver.l1_cursor().unwrap();
         let L2AttributesWithParent { attributes, .. } =
             driver.produce_disputed_payload().await.unwrap();
+        let l1_batch_block = driver.l1_cursor().unwrap();
+        if self.boot.l1_end_number > 0 {
+        assert!(self.boot.l1_end_number >= l1_batch_block.number);
+        }
 
         Ok((attributes, driver.take_l2_safe_head_header(), l1_origin_block))
     }

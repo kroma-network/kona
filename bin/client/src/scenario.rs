@@ -42,7 +42,7 @@ impl Scenario {
         Ok(Self { oracle, boot, l1_provider, l2_provider, beacon, executor: None })
     }
 
-    ///
+    /// Derivation of client program.
     pub async fn derive(&mut self) -> Result<(L2PayloadAttributes, Sealed<Header>, BlockInfo)> {
         let mut driver = DerivationDriver::new(
             self.boot.as_ref(),
@@ -65,7 +65,7 @@ impl Scenario {
         Ok((attributes, driver.take_l2_safe_head_header(), l1_origin_block))
     }
 
-    /// Derivation and execution of the client program.
+    /// Execution of the client program.
     pub async fn execute_block(
         &mut self,
         attributes: L2PayloadAttributes,

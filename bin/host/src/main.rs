@@ -65,7 +65,19 @@ async fn start_solo_client(cfg: &HostCli) -> Result<()> {
         parsed.into_iter().map(|(k, v)| (PreimageKey::try_from(*k).ok().unwrap(), v)).collect();
 
     let mut client = Scenario::new(Some(prebuilt_preimage)).await?;
-    let (attributes, l2_safe_head_header, _l1_origin_block) = client.derive().await?;
+    let (attributes, l2_safe_head_header, l1_origin_block) = client.derive().await?;
+    let l1_end_block_hash = client
+        .check_l1_connectivity(
+            l1_origin_block.hash,
+            l1_origin_block.number,
+            client.boot.l1_end_number,
+        )
+        .await?;
+    tracing::info!(
+        target: "client",
+        "L1 end block hash: {:#?}", l1_end_block_hash
+    );
+
     let number = client.execute_block(attributes, l2_safe_head_header).await?;
     let output_root = client.compute_output_root().await?;
 

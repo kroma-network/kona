@@ -4,9 +4,10 @@ use crate::{
     BootInfo, CachingOracle,
 };
 use alloc::{sync::Arc, vec::Vec};
-use alloy_consensus::{Header, Sealed};
+use alloy_consensus::{Header, Sealable, Sealed};
 use alloy_primitives::B256;
 use anyhow::{Ok, Result};
+use kona_derive::traits::ChainProvider;
 use kona_executor::StatelessL2BlockExecutor;
 use kona_preimage::PreimageKey;
 use kona_primitives::{BlockInfo, L2AttributesWithParent, L2PayloadAttributes};
@@ -63,6 +64,31 @@ impl Scenario {
         }
 
         Ok((attributes, driver.take_l2_safe_head_header(), l1_origin_block))
+    }
+
+    /// Check that the hash chain links from the origin to the end of l1.
+    pub async fn check_l1_connectivity(
+        &mut self,
+        origin_hash: B256,
+        origin_num: u64,
+        end_num: u64,
+    ) -> Result<B256> {
+        assert_ne!(end_num, 0);
+        
+        let end_info = self.l1_provider.block_info_by_number(end_num).await?;
+        let end_header = self.l1_provider.header_by_hash(end_info.hash).await?;
+        let end_hash = end_header.hash();
+
+        let loop_num = end_num - origin_num;
+        let mut current_header = end_header.clone();
+        for _ in 0..loop_num {
+            let parent_header = self.l1_provider.header_by_hash(current_header.parent_hash).await?;
+            assert_eq!(parent_header.hash(), current_header.parent_hash);
+            current_header = parent_header;
+        }
+        assert_eq!(current_header.hash(), origin_hash);
+        assert_eq!(current_header.number, origin_num);
+        Ok(end_hash)
     }
 
     /// Execution of the client program.

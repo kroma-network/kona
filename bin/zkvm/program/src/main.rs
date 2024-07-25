@@ -30,13 +30,22 @@ pub fn main() {
 
     kona_common::block_on(async move {
         let mut client = Scenario::new(Some(prebuilt_preimage)).await.unwrap();
-        let (attributes, l2_safe_head_header, _l1_origin_block) = client.derive().await.unwrap();
+        let (attributes, l2_safe_head_header, l1_origin_block) = client.derive().await.unwrap();
+        let _l1_end_block_hash = client
+            .check_l1_connectivity(
+                l1_origin_block.hash,
+                l1_origin_block.number,
+                client.boot.l1_end_number,
+            )
+            .await.unwrap();
         let number = client.execute_block(attributes, l2_safe_head_header).await.unwrap();
         let output_root = client.compute_output_root().await.unwrap();
 
         assert_eq!(number, client.boot.l2_claim_block);
         assert_eq!(output_root, client.boot.l2_claim);
     });
+
+    // TODO(Ethan): release l1_end_block_hash as a public input.
     // // Encocde the public values of the program.
     // let bytes = PublicValuesTuple::abi_encode(&(n, a, b));
 

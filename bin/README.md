@@ -42,8 +42,8 @@ Run the script to generate the zkvm proof. For this to run, a preimages.json fil
 
 ```shell
 $ cd bin/zkvm/script
-$ cargo run --release -- --target_l2_height <L2_BLOCK_NUM>
+$ cargo run --release -- --target_l2_height <L2_BLOCK_NUM> --l1-end-height <L1_END_BLOCK_NUM>
 
 # Example
-$ cargo run --release -- --target_l2_height <4178>
+$ cargo run --release -- --target_l2_height 4178 --l1-end-height 485
 ```

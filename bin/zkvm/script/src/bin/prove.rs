@@ -7,7 +7,7 @@
 //! ```
 
 use alloy_primitives::B256;
-use alloy_sol_types::{sol, SolType};
+use alloy_sol_types::{sol, SolValue};
 use anyhow::Result;
 use clap::Parser;
 use kona_preimage::PreimageKey;
@@ -28,13 +28,16 @@ struct ProveArgs {
     #[clap(long)]
     target_l2_height: u32,
 
+    #[clap(long)]
+    l1_end_height: u32,
+
     #[clap(long, default_value = "false")]
     evm: bool,
 }
 
 /// The public values encoded as a tuple that can be easily deserialized inside Solidity.
 type PublicValuesTuple = sol! {
-    tuple(uint32, uint32, uint32)
+    tuple(B256, B256, B256)
 };
 
 #[tokio::main]
@@ -61,7 +64,6 @@ async fn main() -> Result<()> {
     // Setup the inputs.
     let mut stdin = SP1Stdin::new();
     stdin.write(&prebuilt_preimage);
-    println!("target_l2_height: {}", args.target_l2_height);
 
     if args.evm {
         // Generate the proof.
@@ -85,10 +87,10 @@ async fn main() -> Result<()> {
 /// A fixture that can be used to test the verification of SP1 zkVM proofs inside Solidity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct SP1FibonacciProofFixture {
-    a: u32,
-    b: u32,
-    n: u32,
+struct SP1ProofFixture {
+    parent_output_root: B256,
+    output_root: B256,
+    l1_end_block_hash: B256,
     vkey: String,
     public_values: String,
     proof: String,
@@ -98,13 +100,13 @@ struct SP1FibonacciProofFixture {
 fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
-    let (n, a, b) = PublicValuesTuple::abi_decode(bytes, false).unwrap();
+    let (parent_output_root, output_root, l1_end_block_hash) = PublicValuesTuple::abi_decode(bytes, false).unwrap();
 
     // Create the testing fixture so we can test things end-ot-end.
-    let fixture = SP1FibonacciProofFixture {
-        a,
-        b,
-        n,
+    let fixture = SP1ProofFixture {
+        parent_output_root,
+        output_root,
+        l1_end_block_hash,
         vkey: vk.bytes32().to_string(),
         public_values: proof.public_values.bytes().to_string(),
         proof: proof.bytes().to_string(),

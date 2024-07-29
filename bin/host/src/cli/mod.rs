@@ -43,6 +43,10 @@ pub struct HostCli {
     /// Address of L2 JSON-RPC endpoint to use (eth and debug namespace required).
     #[clap(long)]
     pub l2_node_address: Option<String>,
+    /// Number of the L1 block which is the end of connectivity check.
+    /// The l1 connectivity check will be disabled if l1_end_block_number is 0.
+    #[clap(default_value_t = 0, long)]
+    pub l1_end_block_number: u64,
     /// Address of L1 JSON-RPC endpoint to use (eth namespace required)
     #[clap(long)]
     pub l1_node_address: Option<String>,

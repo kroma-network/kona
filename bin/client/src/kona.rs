@@ -26,11 +26,16 @@ fn main() -> Result<()> {
         //                          PROLOGUE                          //
         ////////////////////////////////////////////////////////////////
         let mut scenario = Scenario::new(None).await?;
+        tracing::info!(
+            target: "client",
+            "Successfully get l1 end block number: {:?}",
+            scenario.boot.l1_end_number
+        );
 
         ////////////////////////////////////////////////////////////////
         //                   DERIVATION & EXECUTION                   //
         ////////////////////////////////////////////////////////////////
-        let (attributes, l2_safe_head_header) = scenario.derive().await?;
+        let (attributes, l2_safe_head_header, _l1_origin_block) = scenario.derive().await?;
         let number = scenario.execute_block(attributes, l2_safe_head_header).await?;
         let output_root = scenario.compute_output_root().await?;
 

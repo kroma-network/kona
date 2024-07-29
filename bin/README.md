@@ -7,11 +7,11 @@ Run the client with the pre-image server to generate pre-images.json.
 
 ```shell
 $ cd bin
-$ just run-client-native <L2_BLOCK_NUM> <L1_RPC_URL> <L1_BEACON_URL> <L2_RPC_URL> <L2_NODE_RPC_URL> <VERBOSITY>
+$ just run-client-native <L2_BLOCK_NUM> <L1_RPC_URL> <L1_BEACON_URL> <L2_RPC_URL> <L2_NODE_RPC_URL> <L1_END_BLOCK_NUM> <VERBOSITY>
 
 # Example
 # VERBOSITY: The Rust debug level is determined by the number of "v"s.
-$ just run-client-native 4178 http://localhost:8545 http://localhost:5052 http://localhost:9545 http://localhost:7545 -vv
+$ just run-client-native 4178 http://localhost:8545 http://localhost:5052 http://localhost:9545 http://localhost:7545 485 -vv
 $ ls preimages
 4178_preimages.json
 ```
@@ -19,10 +19,10 @@ $ ls preimages
 Once the preimages.json file is generated, the client can be run independently.
 
 ```shell
-$ just run-client-solo <L2_BLOCK_NUM> <VERBOSITY>
+$ just run-client-solo <L2_BLOCK_NUM> <L1_END_BLOCK_NUM> <VERBOSITY>
 
 # Example
-just run-client-solo 4178 -vv
+just run-client-solo 4178 485 -vv
 ```
 
 ## Proving proof with SP1 ZKVM
@@ -42,8 +42,8 @@ Run the script to generate the zkvm proof. For this to run, a preimages.json fil
 
 ```shell
 $ cd bin/zkvm/script
-$ cargo run --release -- --target_l2_height <L2_BLOCK_NUM>
+$ cargo run --release -- --target_l2_height <L2_BLOCK_NUM> --l1-end-height <L1_END_BLOCK_NUM>
 
 # Example
-$ cargo run --release -- --target_l2_height <4178>
+$ cargo run --release -- --target_l2_height 4178 --l1-end-height 485
 ```

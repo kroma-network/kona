@@ -13,6 +13,7 @@ kona-client = { path = "../../client", version = "0.1.0" }
 revm = { git = "https://github.com/bluealloy/revm", tag = "v37", version = "10.0.0", default-features = false }
 anyhow = "1.0.86"
 
+alloy-primitives = { version = "0.7.6", default-features = false }
 alloy-sol-types = "0.7.2"
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
 

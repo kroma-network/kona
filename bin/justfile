@@ -5,7 +5,7 @@ default:
   @just --list
 
 # Run the client program natively with the host program attached.
-run-client-native block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc verbosity:
+run-client-native block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc l1_end_block_number verbosity:
   #!/usr/bin/env bash
 
   L1_NODE_ADDRESS="{{l1_rpc}}"
@@ -15,7 +15,8 @@ run-client-native block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc verbo
   CLIENT_BIN_PATH="./target/riscv64gc-unknown-none-elf/release-client-lto/kona"
 
   L2_BLOCK_NUMBER={{block_number}}
-  echo "Fetching configuration for block #$L2_BLOCK_NUMBER..."
+  L1_END_BLOCK_NUMBER={{l1_end_block_number}}
+  echo "Fetching configuration for block #$L2_BLOCK_NUMBER and #$L1_END_BLOCK_NUMBER as the l1 end..."
 
   # Get output root for block
   L2_CLAIM=$(cast rpc --rpc-url $OP_NODE_ADDRESS "optimism_outputAtBlock" $(cast 2h $L2_BLOCK_NUMBER) | jq -r .outputRoot)
@@ -46,13 +47,14 @@ run-client-native block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc verbo
     --l1-node-address $L1_NODE_ADDRESS \
     --l1-beacon-address $L1_BEACON_ADDRESS \
     --l2-node-address $L2_NODE_ADDRESS \
+    --l1-end-block-number $L1_END_BLOCK_NUMBER \
     --exec $CLIENT_BIN_PATH \
     --data-dir ./data \
     --json-path $EXPORTING_STORE_JSON_PATH \
     {{verbosity}}
 
 # Run the client program natively with the host program attached, in offline mode.
-run-client-native-offline block_number l2_claim l2_output_root l2_head l1_head l2_chain_id verbosity:
+run-client-native-offline block_number l2_claim l2_output_root l2_head l1_head l2_chain_id l1_end_block_number verbosity:
   #!/usr/bin/env bash
 
   CLIENT_BIN_PATH="./target/release-client-lto/kona"
@@ -63,6 +65,7 @@ run-client-native-offline block_number l2_claim l2_output_root l2_head l1_head l
   L2_HEAD={{l2_head}}
   L1_HEAD={{l1_head}}
   L2_CHAIN_ID={{l2_chain_id}}
+  L1_END_BLOCK_NUMBER={{l1_end_block_number}}
 
   EXPORTING_STORE_JSON_PATH="./bin/preimages/${L2_BLOCK_NUMBER}_preimages.json"
 
@@ -79,13 +82,14 @@ run-client-native-offline block_number l2_claim l2_output_root l2_head l1_head l
     --l2-output-root $L2_OUTPUT_ROOT \
     --l2-block-number $L2_BLOCK_NUMBER \
     --l2-chain-id $L2_CHAIN_ID \
+    --l1-end-block-number $L1_END_BLOCK_NUMBER \
     --exec $CLIENT_BIN_PATH \
     --data-dir ./data \
     --json-path $EXPORTING_STORE_JSON_PATH \
     {{verbosity}}
 
 # Run the client program natively with the host program attached.
-run-client-native-offline-auto block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc verbosity:
+run-client-native-offline-auto block_number l1_rpc l1_beacon_rpc l2_rpc rollup_node_rpc l1_end_block_number verbosity:
   #!/usr/bin/env bash
 
   L1_NODE_ADDRESS="{{l1_rpc}}"
@@ -95,7 +99,8 @@ run-client-native-offline-auto block_number l1_rpc l1_beacon_rpc l2_rpc rollup_n
   CLIENT_BIN_PATH="./target/riscv64gc-unknown-none-elf/release-client-lto/kona"
 
   L2_BLOCK_NUMBER={{block_number}}
-  echo "Fetching configuration for block #$L2_BLOCK_NUMBER..."
+  L1_END_BLOCK_NUMBER={{l1_end_block_number}}
+  echo "Fetching configuration for block #$L2_BLOCK_NUMBER and #$L1_END_BLOCK_NUMBER as the l1 end..."
 
   # Get output root for block
   L2_CLAIM=$(cast rpc --rpc-url $OP_NODE_ADDRESS "optimism_outputAtBlock" $(cast 2h $L2_BLOCK_NUMBER) | jq -r .outputRoot)
@@ -123,13 +128,14 @@ run-client-native-offline-auto block_number l1_rpc l1_beacon_rpc l2_rpc rollup_n
     --l2-output-root $L2_OUTPUT_ROOT \
     --l2-block-number $L2_BLOCK_NUMBER \
     --l2-chain-id $L2_CHAIN_ID \
+    --l1-end-block-number $L1_END_BLOCK_NUMBER \
     --exec $CLIENT_BIN_PATH \
     --data-dir ./data \
     --json-path $EXPORTING_STORE_JSON_PATH \
     {{verbosity}}
 
 # Run the client program natively with the host program attached.
-run-client-solo block_number verbosity:
+run-client-solo block_number l1_end_block_number verbosity:
   #!/usr/bin/env bash
 
   # Get the info for the previous block
@@ -140,8 +146,7 @@ run-client-solo block_number verbosity:
   L2_CHAIN_ID="0"
   L2_CLAIM="0x0000000000000000000000000000000000000000000000000000000000000000"
   L2_BLOCK_NUMBER={{block_number}}
-  
-  CLIENT_BIN_PATH="./target/release-client-lto/kona"
+  L1_END_BLOCK_NUMBER={{l1_end_block_number}}
   IMPORTING_STORE_JSON_PATH="./bin/preimages/${L2_BLOCK_NUMBER}_preimages.json"
 
   # Move to the workspace root
@@ -156,6 +161,7 @@ run-client-solo block_number verbosity:
     --l2-output-root $L2_OUTPUT_ROOT \
     --l2-block-number $L2_BLOCK_NUMBER \
     --l2-chain-id $L2_CHAIN_ID \
+    --l1-end-block-number $L1_END_BLOCK_NUMBER \
     --client \
     --json-path $IMPORTING_STORE_JSON_PATH \
     {{verbosity}}

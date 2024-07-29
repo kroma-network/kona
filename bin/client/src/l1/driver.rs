@@ -16,7 +16,7 @@ use kona_derive::{
         AttributesQueue, BatchQueue, ChannelBank, ChannelReader, FrameQueue, L1Retrieval,
         L1Traversal, StatefulAttributesBuilder,
     },
-    traits::{ChainProvider, L2ChainProvider},
+    traits::{ChainProvider, L2ChainProvider, OriginProvider},
 };
 use kona_mpt::TrieDBFetcher;
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
@@ -64,6 +64,11 @@ pub struct DerivationDriver {
 }
 
 impl DerivationDriver {
+    /// Returns the last L1 block [BlockInfo] being pointed after derivation process.
+    pub fn l1_cursor(&self) -> Option<BlockInfo> {
+        self.pipeline.origin()
+    }
+
     /// Returns the current L2 safe head [L2BlockInfo].
     pub fn l2_safe_head(&self) -> &L2BlockInfo {
         &self.l2_safe_head

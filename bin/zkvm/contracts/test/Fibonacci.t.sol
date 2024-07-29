@@ -7,9 +7,9 @@ import {Fibonacci} from "../src/Fibonacci.sol";
 import {SP1VerifierGateway} from "@sp1-contracts/SP1VerifierGateway.sol";
 
 struct SP1ProofFixtureJson {
-    uint32 a;
-    uint32 b;
-    uint32 n;
+    bytes32 l1EndBlockHash;
+    bytes32 outputRoot;
+    bytes32 parentOutputRoot;
     bytes proof;
     bytes publicValues;
     bytes32 vkey;
@@ -41,10 +41,10 @@ contract FibonacciTest is Test {
 
         vm.mockCall(verifier, abi.encodeWithSelector(SP1VerifierGateway.verifyProof.selector), abi.encode(true));
 
-        (uint32 n, uint32 a, uint32 b) = fibonacci.verifyFibonacciProof(fixture.proof, fixture.publicValues);
-        assert(n == fixture.n);
-        assert(a == fixture.a);
-        assert(b == fixture.b);
+        (bytes32 parentOutputRoot, bytes32 outputRoot, bytes32 l1EndBlockHash) = fibonacci.verifyFibonacciProof(fixture.proof, fixture.publicValues);
+        assert(parentOutputRoot == fixture.parentOutputRoot);
+        assert(outputRoot == fixture.outputRoot);
+        assert(l1EndBlockHash == fixture.l1EndBlockHash);
     }
 
     function testFail_InvalidFibonacciProof() public view {

@@ -26,6 +26,9 @@ pub const L2_CHAIN_ID_KEY: U256 = U256::from_be_slice(&[5]);
 /// The local key ident for the L2 rollup config.
 pub const L2_ROLLUP_CONFIG_KEY: U256 = U256::from_be_slice(&[6]);
 
+/// The local key ident for the L1 end block number.
+pub const L1_END_NUMBER_KEY: U256 = U256::from_be_slice(&[7]);
+
 /// The boot information for the client program.
 ///
 /// **Verified inputs:**
@@ -49,6 +52,8 @@ pub struct BootInfo {
     pub l2_claim_block: u64,
     /// The L2 chain ID.
     pub chain_id: u64,
+    /// The L1 end block number.
+    pub l1_end_number: u64,
     /// The rollup config for the L2 chain.
     pub rollup_config: RollupConfig,
 }
@@ -91,6 +96,13 @@ impl BootInfo {
                 .try_into()
                 .map_err(|_| anyhow!("Failed to convert L2 chain ID to u64"))?,
         );
+        let l1_end_number = u64::from_be_bytes(
+            oracle
+                .get(PreimageKey::new_local(L1_END_NUMBER_KEY.to()))
+                .await?
+                .try_into()
+                .map_err(|_| anyhow!("Failed to convert L1 end number to u64"))?,
+        );
 
         let rollup_config = if chain_id == 901 {
             OP_DEVNET_CONFIG
@@ -99,6 +111,6 @@ impl BootInfo {
                 .ok_or_else(|| anyhow!("Failed to get rollup config for L2 Chain ID: {chain_id}"))?
         };
 
-        Ok(Self { l1_head, l2_output_root, l2_claim, l2_claim_block, chain_id, rollup_config })
+        Ok(Self { l1_head, l2_output_root, l2_claim, l2_claim_block, chain_id, l1_end_number, rollup_config })
     }
 }

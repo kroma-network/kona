@@ -7,7 +7,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use alloy_consensus::{Header, Sealable, EMPTY_OMMER_ROOT_HASH, EMPTY_ROOT_HASH};
+use alloy_consensus::{Header, Sealable, Sealed, EMPTY_OMMER_ROOT_HASH, EMPTY_ROOT_HASH};
 use alloy_eips::eip2718::{Decodable2718, Encodable2718};
 use alloy_primitives::{address, keccak256, Address, Bytes, TxKind, B256, U256};
 use anyhow::{anyhow, Result};
@@ -313,6 +313,67 @@ where
         Ok(self.state.database.parent_block_header())
     }
 
+    fn fetch_withdrawal_root(&mut self) -> B256 {
+        const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
+            address!("4200000000000000000000000000000000000016");
+        match self.state.database.storage_roots().get(&L2_TO_L1_MESSAGE_PASSER_ADDRESS) {
+            Some(storage_root) => storage_root
+                .blinded_commitment()
+                .ok_or(anyhow!("Account storage root is un-blinded"))
+                .unwrap(),
+            None => {
+                self.state
+                    .database
+                    .get_trie_account(&L2_TO_L1_MESSAGE_PASSER_ADDRESS)
+                    .unwrap()
+                    .ok_or(anyhow!("L2 to L1 message passer account not found in trie"))
+                    .unwrap()
+                    .storage_root
+            }
+        }
+    }
+
+    ///
+    pub fn compute_output_root_of(&mut self, header: Option<Sealed<Header>>) -> Result<B256> {
+        const OUTPUT_ROOT_VERSION: u8 = 0;
+        let (header, storage_root) = match header {
+            Some(header) => {
+                let storage_root = header.withdrawals_root.unwrap();
+                (header, storage_root)
+            }
+            None => {
+                let header = self.state.database.parent_block_header().clone();
+                let storage_root = self.fetch_withdrawal_root();
+                (header, storage_root)
+            }
+        };
+
+        info!(
+            target: "client_executor",
+            "Computing output root | Version: {version} | State root: {state_root} | Storage root: {storage_root} | Block hash: {hash}",
+            version = OUTPUT_ROOT_VERSION,
+            state_root = self.state.database.parent_block_header().state_root,
+            hash = header.seal(),
+        );
+
+        // Construct the raw output.
+        let mut raw_output = [0u8; 128];
+        raw_output[31] = OUTPUT_ROOT_VERSION;
+        raw_output[32..64].copy_from_slice(header.state_root.as_ref());
+        raw_output[64..96].copy_from_slice(storage_root.as_ref());
+        raw_output[96..128].copy_from_slice(header.seal().as_ref());
+        let output_root = keccak256(raw_output);
+
+        info!(
+            target: "client_executor",
+            "Computed output root for block # {block_number} | Output root: {output_root}",
+            block_number = header.number,
+        );
+
+        // Hash the output and return
+        Ok(output_root)
+    }
+
     /// Computes the current output root of the executor, based on the parent header and the
     /// state's underlying trie.
     ///
@@ -326,48 +387,7 @@ where
     /// - `Ok(output_root)`: The computed output root.
     /// - `Err(_)`: If an error occurred while computing the output root.
     pub fn compute_output_root(&mut self) -> Result<B256> {
-        const OUTPUT_ROOT_VERSION: u8 = 0;
-        const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
-            address!("4200000000000000000000000000000000000016");
-
-        // Fetch the L2 to L1 message passer account from the cache or underlying trie.
-        let storage_root =
-            match self.state.database.storage_roots().get(&L2_TO_L1_MESSAGE_PASSER_ADDRESS) {
-                Some(storage_root) => storage_root
-                    .blinded_commitment()
-                    .ok_or(anyhow!("Account storage root is unblinded"))?,
-                None => {
-                    self.state
-                        .database
-                        .get_trie_account(&L2_TO_L1_MESSAGE_PASSER_ADDRESS)?
-                        .ok_or(anyhow!("L2 to L1 message passer account not found in trie"))?
-                        .storage_root
-                }
-            };
-
-        let parent_header = self.state.database.parent_block_header();
-
-        info!(
-            target: "client_executor",
-            "Computing output root | Version: {version} | State root: {state_root} | Storage root: {storage_root} | Block hash: {hash}",
-            version = OUTPUT_ROOT_VERSION,
-            state_root = self.state.database.parent_block_header().state_root,
-            hash = parent_header.seal(),
-        );
-
-        // Construct the raw output.
-        let mut raw_output = [0u8; 128];
-        raw_output[31] = OUTPUT_ROOT_VERSION;
-        raw_output[32..64].copy_from_slice(parent_header.state_root.as_ref());
-        raw_output[64..96].copy_from_slice(storage_root.as_ref());
-        raw_output[96..128].copy_from_slice(parent_header.seal().as_ref());
-        let output_root = keccak256(raw_output);
-
-        info!(
-            target: "client_executor",
-            "Computed output root for block # {block_number} | Output root: {output_root}",
-            block_number = parent_header.number,
-        );
+        let output_root = self.compute_output_root_of(None).unwrap();
 
         // Hash the output and return
         Ok(output_root)

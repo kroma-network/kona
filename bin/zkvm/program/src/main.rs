@@ -38,7 +38,9 @@ pub fn main() {
                 client.boot.l1_end_number,
             )
             .await.unwrap();
-        let number = client.execute_block(attributes, l2_safe_head_header).await.unwrap();
+        let number = client.execute_block(attributes, l2_safe_head_header.clone()).await.unwrap();
+
+        let _parent_output_root = client.compute_output_root_of(l2_safe_head_header).await?;
         let output_root = client.compute_output_root().await.unwrap();
 
         assert_eq!(number, client.boot.l2_claim_block);

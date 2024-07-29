@@ -78,7 +78,13 @@ async fn start_solo_client(cfg: &HostCli) -> Result<()> {
         "L1 end block hash: {:#?}", l1_end_block_hash
     );
 
-    let number = client.execute_block(attributes, l2_safe_head_header).await?;
+    let number = client.execute_block(attributes, l2_safe_head_header.clone()).await?;
+
+    let parent_output_root = client.compute_output_root_of(l2_safe_head_header).await?;
+    tracing::info!(
+        target: "client",
+        "Output Root: {:#?}", parent_output_root
+    );
     let output_root = client.compute_output_root().await?;
 
     assert_eq!(number, client.boot.l2_claim_block);

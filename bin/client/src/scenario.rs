@@ -60,7 +60,7 @@ impl Scenario {
             driver.produce_disputed_payload().await.unwrap();
         let l1_batch_block = driver.l1_cursor().unwrap();
         if self.boot.l1_end_number > 0 {
-        assert!(self.boot.l1_end_number >= l1_batch_block.number);
+            assert!(self.boot.l1_end_number >= l1_batch_block.number);
         }
 
         Ok((attributes, driver.take_l2_safe_head_header(), l1_origin_block))
@@ -74,7 +74,7 @@ impl Scenario {
         end_num: u64,
     ) -> Result<B256> {
         assert_ne!(end_num, 0);
-        
+
         let end_info = self.l1_provider.block_info_by_number(end_num).await?;
         let end_header = self.l1_provider.header_by_hash(end_info.hash).await?;
         let end_hash = end_header.hash();
@@ -114,8 +114,12 @@ impl Scenario {
     }
 
     /// Compute the output root.
-    /// TODO(ethan): it should be receipt height as a input.
     pub async fn compute_output_root(&mut self) -> Result<B256> {
         self.executor.as_mut().unwrap().compute_output_root()
+    }
+
+    /// Compute the output root of the parent.
+    pub async fn compute_output_root_of(&mut self, header: Sealed<Header>) -> Result<B256> {
+        self.executor.as_mut().unwrap().compute_output_root_of(Some(header))
     }
 }

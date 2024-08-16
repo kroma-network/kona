@@ -13,7 +13,7 @@ use clap::Parser;
 use kona_preimage::PreimageKey;
 use revm::primitives::HashMap;
 use serde::{Deserialize, Serialize};
-use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -67,11 +67,11 @@ async fn main() -> Result<()> {
 
     if args.evm {
         // Generate the proof.
-        let proof = client.prove_plonk(&pk, stdin).expect("failed to generate proof");
+        let proof = client.prove(&pk, stdin).plonk().run().unwrap();
         create_plonk_fixture(&proof, &vk);
     } else {
         // Generate the proof.
-        let proof = client.prove(&pk, stdin).expect("failed to generate proof");
+        let proof = client.prove(&pk, stdin).run().expect("failed to generate proof");
         proof.save("proof-with-pis.json").expect("failed to save proof");
         // let (_, _, fib_n) =
         //     PublicValuesTuple::abi_decode(proof.public_values.as_slice(), false).unwrap();
@@ -97,10 +97,11 @@ struct SP1ProofFixture {
 }
 
 /// Create a fixture for the given proof.
-fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
+fn create_plonk_fixture(proof: &SP1ProofWithPublicValues, vk: &SP1VerifyingKey) {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
-    let (parent_output_root, output_root, l1_end_block_hash) = PublicValuesTuple::abi_decode(bytes, false).unwrap();
+    let (parent_output_root, output_root, l1_end_block_hash) =
+        PublicValuesTuple::abi_decode(bytes, false).unwrap();
 
     // Create the testing fixture so we can test things end-ot-end.
     let fixture = SP1ProofFixture {
@@ -108,8 +109,8 @@ fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
         output_root,
         l1_end_block_hash,
         vkey: vk.bytes32().to_string(),
-        public_values: proof.public_values.bytes().to_string(),
-        proof: proof.bytes().to_string(),
+        public_values: format!("0x{}", hex::encode(bytes)),
+        proof: format!("0x{}", hex::encode(proof.bytes())),
     };
 
     // The verification key is used to verify that the proof corresponds to the execution of the

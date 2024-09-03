@@ -13,6 +13,7 @@ use clap::{ArgEnum, Parser};
 use kona_preimage::PreimageKey;
 use revm::primitives::HashMap;
 use serde::{Deserialize, Serialize};
+use sp1_core::utils::SP1ProverOpts;
 use sp1_sdk::{
     multi_prover::{
         common::{self, ProveArgs},
@@ -70,6 +71,19 @@ impl MainArgs {
         let parsed: HashMap<B256, Vec<u8>> = serde_json::from_reader(reader).unwrap();
         parsed.into_iter().map(|(k, v)| (PreimageKey::try_from(*k).ok().unwrap(), v)).collect()
     }
+
+    pub fn print_description(&self) {
+        println!("Proving with the following configuration:");
+        println!("- Method: {:?}", self.method);
+        println!("- Preimages Dir: {:?}", self.preimages_dir);
+        println!("- Target L2 Height: {:?}", self.target_l2_height);
+        println!("- L1 End Height: {:?}", self.l1_end_height);
+        println!("- EVM: {:?}", self.evm);
+
+        let opts = SP1ProverOpts::default();
+        println!("- Shard Size: {:?}", opts.core_opts.shard_size);
+        println!("- Batch Size: {:?}", opts.core_opts.shard_batch_size);
+    }
 }
 
 /// The public values encoded as a tuple that can be easily deserialized inside Solidity.
@@ -84,6 +98,7 @@ async fn main() -> Result<()> {
 
     // Parse the command line arguments.
     let main_args = MainArgs::parse();
+    main_args.print_description();
 
     match main_args.method {
         Method::Single | Method::Multi => {

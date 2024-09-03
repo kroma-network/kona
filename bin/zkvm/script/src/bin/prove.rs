@@ -13,7 +13,13 @@ use clap::{ArgEnum, Parser};
 use kona_preimage::PreimageKey;
 use revm::primitives::HashMap;
 use serde::{Deserialize, Serialize};
-use sp1_sdk::{HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{
+    multi_prover::{
+        common::{self, ProveArgs},
+        scenario,
+    },
+    HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
+};
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -26,6 +32,8 @@ pub const EVM_ELF: &[u8] = include_bytes!("../../../program/elf/riscv32im-succin
 enum Method {
     /// Generate a proof by a single machine prover
     Single,
+    /// Generate a proof by a multi machine prover
+    Multi,
 }
 
 /// The arguments for the prove command.
@@ -75,39 +83,37 @@ async fn main() -> Result<()> {
     // Parse the command line arguments.
     let main_args = MainArgs::parse();
 
+    match main_args.method {
+        Method::Single | Method::Multi => {
+            let args = ProveArgs { zkvm_input: main_args.get_preimages(), elf: EVM_ELF.to_vec() };
+            match main_args.method {
+                Method::Single => {
     // Setup the prover client.
     let client = ProverClient::new();
-
-    // Setup the program.
     let (pk, vk) = client.setup(EVM_ELF);
-
-    let json_file_name = format!("../../preimages/{}_preimages.json", main_args.target_l2_height);
-    let json_file = File::open(json_file_name).unwrap();
-    let reader = BufReader::new(json_file);
-    let parsed: HashMap<B256, Vec<u8>> = serde_json::from_reader(reader).unwrap();
-    let prebuilt_preimage: HashMap<PreimageKey, Vec<u8>> =
-        parsed.into_iter().map(|(k, v)| (PreimageKey::try_from(*k).ok().unwrap(), v)).collect();
 
     // Setup the inputs.
     let mut stdin = SP1Stdin::new();
-    stdin.write(&prebuilt_preimage);
+                    stdin.write(&args.zkvm_input);
 
-    if main_args.evm {
-        // Generate the proof.
-        let proof = client.prove(&pk, stdin).plonk().run().unwrap();
+                    let proof =
+                        client.prove(&pk, stdin).plonk().run().expect("failed to generate proof");
+                    create_plonk_fixture(&proof, &vk);
+                }
+                Method::Multi => {
+                    let (core_proof, _, plonk_proof) =
+                        scenario::plonk_prove::mpc_prove_plonk(&args).unwrap();
+                    let proof =
+                        scenario::plonk_prove::scenario_end(&args, &core_proof, &plonk_proof)
+                            .unwrap();
+                    let (_, _, _, vk) = common::init_client(&args);
         create_plonk_fixture(&proof, &vk);
-    } else {
-        // Generate the proof.
-        let proof = client.prove(&pk, stdin).run().expect("failed to generate proof");
-        proof.save("proof-with-pis.json").expect("failed to save proof");
-        // let (_, _, fib_n) =
-        //     PublicValuesTuple::abi_decode(proof.public_values.as_slice(), false).unwrap();
-        println!("Successfully generated proof!");
-        // println!("fib(n): {}", fib_n);
-
-        // Verify the proof.
-        client.verify(&proof, &vk).expect("failed to verify proof");
+                }
+                _ => unreachable!(),
+            }
+        }
     }
+
     Ok(())
 }
 

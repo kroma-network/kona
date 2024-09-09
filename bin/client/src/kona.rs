@@ -2,7 +2,6 @@
 #![warn(missing_debug_implementations, missing_docs, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
-#![no_std]
 #![cfg_attr(any(target_arch = "mips", target_arch = "riscv64", target_os = "zkvm"), no_main)]
 
 use kona_client::scenario::Scenario;

@@ -22,11 +22,17 @@ spin.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 revm.workspace = true
+itertools.workspace = true
+sha2.workspace = true
+kzg-rs = { version = "0.2.2" }
+serde = { version = "1.0.197", features = ["derive"] }
 
 # local
 kona-common = { path = "../../crates/common", version = "0.0.2" }
 kona-common-proc = { path = "../../crates/common-proc", version = "0.0.2" }
-kona-preimage = { path = "../../crates/preimage", version = "0.0.2" }
+kona-preimage = { path = "../../crates/preimage", version = "0.0.2", features = [
+    "serde",
+] }
 kona-primitives = { path = "../../crates/primitives", version = "0.0.1" }
 kona-mpt = { path = "../../crates/mpt", version = "0.0.2" }
 kona-derive = { path = "../../crates/derive", default-features = false, version = "0.0.2" }

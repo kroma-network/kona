@@ -1,6 +1,6 @@
 //! Contains the concrete implementation of the [BlobProvider] trait for the client program.
 
-use crate::{CachingOracle, HintType, HINT_WRITER};
+use crate::{HintType, HINT_WRITER};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use alloy_consensus::Blob;
 use alloy_eips::eip4844::FIELD_ELEMENTS_PER_BLOB;
@@ -10,18 +10,18 @@ use kona_derive::{
     traits::BlobProvider,
     types::{BlobProviderError, IndexedBlobHash},
 };
-use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use kona_preimage::{CommsClient, HintWriterClient, PreimageKey, PreimageKeyType};
 use kona_primitives::BlockInfo;
 
 /// An oracle-backed blob provider.
 #[derive(Debug, Clone)]
-pub struct OracleBlobProvider {
-    oracle: Arc<CachingOracle>,
+pub struct OracleBlobProvider<T: CommsClient> {
+    oracle: Arc<T>,
 }
 
-impl OracleBlobProvider {
+impl<T: CommsClient> OracleBlobProvider<T> {
     /// Constructs a new `OracleBlobProvider`.
-    pub fn new(oracle: Arc<CachingOracle>) -> Self {
+    pub fn new(oracle: Arc<T>) -> Self {
         Self { oracle }
     }
 
@@ -77,7 +77,7 @@ impl OracleBlobProvider {
 }
 
 #[async_trait]
-impl BlobProvider for OracleBlobProvider {
+impl<T: CommsClient + Sync + Send> BlobProvider for OracleBlobProvider<T> {
     async fn get_blobs(
         &mut self,
         block_ref: &BlockInfo,

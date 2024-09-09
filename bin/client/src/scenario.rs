@@ -1,40 +1,43 @@
+use revm::primitives::HashMap;
+
 use crate::{
+    in_memory_oracle::oracle::InMemoryOracle,
     l1::{DerivationDriver, OracleBlobProvider, OracleL1ChainProvider},
-    l2::{FPVMPrecompileOverride, OracleL2ChainProvider, TrieDBHintWriter},
-    BootInfo, CachingOracle,
+    l2::{OracleL2ChainProvider, TrieDBHintWriter},
+    BootInfo,
 };
 use alloc::{sync::Arc, vec::Vec};
 use alloy_consensus::{Header, Sealable, Sealed};
 use alloy_primitives::B256;
 use anyhow::{Ok, Result};
 use kona_derive::traits::ChainProvider;
-use kona_executor::StatelessL2BlockExecutor;
+use kona_executor::{NoPrecompileOverride, StatelessL2BlockExecutor};
 use kona_preimage::PreimageKey;
 use kona_primitives::{BlockInfo, L2AttributesWithParent, L2PayloadAttributes};
-use revm::primitives::HashMap;
 
-type ExecutorType = StatelessL2BlockExecutor<
-    OracleL2ChainProvider,
-    TrieDBHintWriter,
-    FPVMPrecompileOverride<OracleL2ChainProvider, TrieDBHintWriter>,
->;
+type ExecutorType<O> =
+    StatelessL2BlockExecutor<OracleL2ChainProvider<O>, TrieDBHintWriter, NoPrecompileOverride>;
 
 /// Scenario of the client program.
 #[derive(Debug)]
 pub struct Scenario {
-    oracle: Arc<CachingOracle>,
+    oracle: Arc<InMemoryOracle>,
     /// Boot information.
     pub boot: Arc<BootInfo>,
-    l1_provider: OracleL1ChainProvider,
-    l2_provider: OracleL2ChainProvider,
-    beacon: OracleBlobProvider,
-    executor: Option<ExecutorType>,
+    l1_provider: OracleL1ChainProvider<InMemoryOracle>,
+    l2_provider: OracleL2ChainProvider<InMemoryOracle>,
+    beacon: OracleBlobProvider<InMemoryOracle>,
+    executor: Option<ExecutorType<InMemoryOracle>>,
 }
 
 impl Scenario {
     /// Prologue of the client program.
     pub async fn new(prebuilt_preimage: Option<HashMap<PreimageKey, Vec<u8>>>) -> Result<Self> {
-        let oracle = Arc::new(CachingOracle::new(prebuilt_preimage));
+        let cache = match prebuilt_preimage {
+            Some(prebuilt_preimage) => prebuilt_preimage,
+            None => HashMap::new(),
+        };
+        let oracle = Arc::new(InMemoryOracle::new(cache));
         let boot = Arc::new(BootInfo::load(oracle.as_ref()).await.unwrap());
         let l1_provider = OracleL1ChainProvider::new(boot.clone(), oracle.clone());
         let l2_provider = OracleL2ChainProvider::new(boot.clone(), oracle.clone());
@@ -97,8 +100,7 @@ impl Scenario {
         attributes: L2PayloadAttributes,
         l2_safe_head_header: Sealed<Header>,
     ) -> Result<u64> {
-        let precompile_overrides =
-            FPVMPrecompileOverride::<OracleL2ChainProvider, TrieDBHintWriter>::default();
+        let precompile_overrides = NoPrecompileOverride;
         self.executor = Some(
             StatelessL2BlockExecutor::builder(self.boot.rollup_config.clone())
                 .with_parent_header(l2_safe_head_header)

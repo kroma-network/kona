@@ -1,6 +1,6 @@
 //! Contains the concrete implementation of the [ChainProvider] trait for the client program.
 
-use crate::{BootInfo, CachingOracle, HintType, HINT_WRITER};
+use crate::{BootInfo, HintType, HINT_WRITER};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use alloy_consensus::{Header, Receipt, ReceiptEnvelope, TxEnvelope};
 use alloy_eips::eip2718::Decodable2718;
@@ -10,27 +10,27 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use kona_derive::traits::ChainProvider;
 use kona_mpt::{OrderedListWalker, TrieDBFetcher};
-use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use kona_preimage::{CommsClient, HintWriterClient, PreimageKey, PreimageKeyType};
 use kona_primitives::BlockInfo;
 
 /// The oracle-backed L1 chain provider for the client program.
 #[derive(Debug, Clone)]
-pub struct OracleL1ChainProvider {
+pub struct OracleL1ChainProvider<T: CommsClient> {
     /// The boot information
     boot_info: Arc<BootInfo>,
     /// The preimage oracle client.
-    oracle: Arc<CachingOracle>,
+    oracle: Arc<T>,
 }
 
-impl OracleL1ChainProvider {
+impl<T: CommsClient> OracleL1ChainProvider<T> {
     /// Creates a new [OracleL1ChainProvider] with the given boot information and oracle client.
-    pub fn new(boot_info: Arc<BootInfo>, oracle: Arc<CachingOracle>) -> Self {
+    pub fn new(boot_info: Arc<BootInfo>, oracle: Arc<T>) -> Self {
         Self { boot_info, oracle }
     }
 }
 
 #[async_trait]
-impl ChainProvider for OracleL1ChainProvider {
+impl<T: CommsClient + Sync + Send> ChainProvider for OracleL1ChainProvider<T> {
     async fn header_by_hash(&mut self, hash: B256) -> Result<Header> {
         // Send a hint for the block header.
         HINT_WRITER.write(&HintType::L1BlockHeader.encode_with(&[hash.as_ref()])).await?;
@@ -119,7 +119,7 @@ impl ChainProvider for OracleL1ChainProvider {
     }
 }
 
-impl TrieDBFetcher for OracleL1ChainProvider {
+impl<T: CommsClient> TrieDBFetcher for OracleL1ChainProvider<T> {
     fn trie_node_preimage(&self, key: B256) -> Result<Bytes> {
         // On L1, trie node preimages are stored as keccak preimage types in the oracle. We assume
         // that a hint for these preimages has already been sent, prior to this call.

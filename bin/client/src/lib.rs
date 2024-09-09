@@ -2,7 +2,6 @@
 #![warn(missing_debug_implementations, missing_docs, unreachable_pub, rustdoc::all)]
 #![deny(unused_must_use, rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
-#![no_std]
 
 extern crate alloc;
 
@@ -15,6 +14,9 @@ pub use hint::HintType;
 
 mod comms;
 pub use comms::{CachingOracle, HINT_WRITER, ORACLE_READER};
+
+/// In-memory oracle.
+pub mod in_memory_oracle;
 
 mod boot;
 pub use boot::{

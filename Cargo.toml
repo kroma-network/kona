@@ -20,6 +20,8 @@ cfg-if = "1.0.0"
 spin = { version = "0.9.8", features = ["mutex"] }
 lru = "0.12.3"
 async-trait = "0.1.80"
+itertools = "0.13.0"
+sha2 = "0.10.8"
 
 # Ethereum
 alloy-primitives = { version = "0.7.6", default-features = false }
@@ -28,6 +30,9 @@ alloy-consensus = { version = "0.1", default-features = false }
 op-alloy-consensus = { version = "0.1.0", default-features = false }
 alloy-eips = { version = "0.1", default-features = false }
 revm = { git = "https://github.com/bluealloy/revm", tag = "v37", version = "10.0.0", default-features = false }
+
+[patch.crates-io]
+sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
 
 [profile.dev]
 opt-level = 1

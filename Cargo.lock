@@ -2250,6 +2250,7 @@ dependencies = [
  "alloy-transport-http",
  "anyhow",
  "async-trait",
+ "cfg-if",
  "clap",
  "command-fds",
  "futures",

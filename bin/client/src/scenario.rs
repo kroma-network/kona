@@ -1,25 +1,34 @@
-use revm::primitives::HashMap;
-
 use crate::{
-    in_memory_oracle::oracle::InMemoryOracle,
     l1::{DerivationDriver, OracleBlobProvider, OracleL1ChainProvider},
     l2::{OracleL2ChainProvider, TrieDBHintWriter},
     BootInfo,
 };
-use alloc::{sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 use alloy_consensus::{Header, Sealable, Sealed};
 use alloy_primitives::B256;
 use anyhow::{Ok, Result};
 use kona_derive::traits::ChainProvider;
 use kona_executor::{NoPrecompileOverride, StatelessL2BlockExecutor};
-use kona_preimage::PreimageKey;
 use kona_primitives::{BlockInfo, L2AttributesWithParent, L2PayloadAttributes};
+
+cfg_if::cfg_if! {
+    if #[cfg(target_os = "zkvm")] {
+        use crate::in_memory_oracle::oracle::InMemoryOracle;
+        use revm::primitives::HashMap;
+        use alloc::vec::Vec;
+        use kona_preimage::PreimageKey;
+    } else {
+        use kona_preimage::{HintWriter, OracleReader};
+        use crate::{CachingOracle, ORACLE_READER, HINT_WRITER};
+    }
+}
 
 type ExecutorType<O> =
     StatelessL2BlockExecutor<OracleL2ChainProvider<O>, TrieDBHintWriter, NoPrecompileOverride>;
 
 /// Scenario of the client program.
 #[derive(Debug)]
+#[cfg(any(target_os = "zkvm", feature = "solo-client"))]
 pub struct Scenario {
     oracle: Arc<InMemoryOracle>,
     /// Boot information.
@@ -30,14 +39,40 @@ pub struct Scenario {
     executor: Option<ExecutorType<InMemoryOracle>>,
 }
 
+/// Scenario of the client program.
+#[derive(Debug)]
+#[cfg(not(target_os = "zkvm"))]
+pub struct Scenario {
+    oracle: Arc<CachingOracle<OracleReader, HintWriter>>,
+    /// Boot information.
+    pub boot: Arc<BootInfo>,
+    l1_provider: OracleL1ChainProvider<CachingOracle<OracleReader, HintWriter>>,
+    l2_provider: OracleL2ChainProvider<CachingOracle<OracleReader, HintWriter>>,
+    beacon: OracleBlobProvider<CachingOracle<OracleReader, HintWriter>>,
+    executor: Option<ExecutorType<CachingOracle<OracleReader, HintWriter>>>,
+}
+
 impl Scenario {
     /// Prologue of the client program.
+    #[cfg(target_os = "zkvm")]
     pub async fn new(prebuilt_preimage: Option<HashMap<PreimageKey, Vec<u8>>>) -> Result<Self> {
         let cache = match prebuilt_preimage {
             Some(prebuilt_preimage) => prebuilt_preimage,
             None => HashMap::new(),
         };
         let oracle = Arc::new(InMemoryOracle::new(cache));
+        let boot = Arc::new(BootInfo::load(oracle.as_ref()).await.unwrap());
+        let l1_provider = OracleL1ChainProvider::new(boot.clone(), oracle.clone());
+        let l2_provider = OracleL2ChainProvider::new(boot.clone(), oracle.clone());
+        let beacon = OracleBlobProvider::new(oracle.clone());
+
+        Ok(Self { oracle, boot, l1_provider, l2_provider, beacon, executor: None })
+    }
+
+    /// Prologue of the client program.
+    #[cfg(not(target_os = "zkvm"))]
+    pub async fn new() -> Result<Self> {
+        let oracle = Arc::new(CachingOracle::new(1024, ORACLE_READER, HINT_WRITER));
         let boot = Arc::new(BootInfo::load(oracle.as_ref()).await.unwrap());
         let l1_provider = OracleL1ChainProvider::new(boot.clone(), oracle.clone());
         let l2_provider = OracleL2ChainProvider::new(boot.clone(), oracle.clone());

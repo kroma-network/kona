@@ -3,12 +3,12 @@
 //!
 //! [OracleReader]: kona_preimage::OracleReader
 
-use crate::ORACLE_READER;
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use anyhow::Result;
 use async_trait::async_trait;
-use kona_preimage::{PreimageKey, PreimageOracleClient};
-use revm::primitives::HashMap;
+use core::num::NonZeroUsize;
+use kona_preimage::{CommsClient, HintWriterClient, PreimageKey, PreimageOracleClient};
+use lru::LruCache;
 use spin::Mutex;
 
 /// A wrapper around an [OracleReader] that stores a configurable number of responses in an
@@ -16,34 +16,52 @@ use spin::Mutex;
 ///
 /// [OracleReader]: kona_preimage::OracleReader
 #[derive(Debug, Clone)]
-pub struct CachingOracle {
+pub struct CachingOracle<OR, HW>
+where
+    OR: PreimageOracleClient,
+    HW: HintWriterClient,
+{
     /// The spin-locked cache that stores the responses from the oracle.
-    cache: Arc<Mutex<HashMap<PreimageKey, Vec<u8>>>>,
+    cache: Arc<Mutex<LruCache<PreimageKey, Vec<u8>>>>,
+    /// Oracle reader type.
+    oracle_reader: OR,
+    /// Hint writer type.
+    hint_writer: HW,
 }
 
-impl CachingOracle {
+impl<OR, HW> CachingOracle<OR, HW>
+where
+    OR: PreimageOracleClient,
+    HW: HintWriterClient,
+{
     /// Creates a new [CachingOracle] that wraps the given [OracleReader] and stores up to `N`
     /// responses in the cache.
     ///
     /// [OracleReader]: kona_preimage::OracleReader
-    pub fn new(prebuilt_preimage: Option<HashMap<PreimageKey, Vec<u8>>>) -> Self {
-        let map = match prebuilt_preimage {
-            Some(map) => map,
-            None => HashMap::new(),
-        };
-        Self { cache: Arc::new(Mutex::new(map)) }
+    pub fn new(cache_size: usize, oracle_reader: OR, hint_writer: HW) -> Self {
+        Self {
+            cache: Arc::new(Mutex::new(LruCache::new(
+                NonZeroUsize::new(cache_size).expect("N must be greater than 0"),
+            ))),
+            oracle_reader,
+            hint_writer,
+        }
     }
 }
 
 #[async_trait]
-impl PreimageOracleClient for CachingOracle {
+impl<OR, HW> PreimageOracleClient for CachingOracle<OR, HW>
+where
+    OR: PreimageOracleClient + Sync,
+    HW: HintWriterClient + Sync,
+{
     async fn get(&self, key: PreimageKey) -> Result<Vec<u8>> {
         let mut cache_lock = self.cache.lock();
         if let Some(value) = cache_lock.get(&key) {
             Ok(value.clone())
         } else {
-            let value = ORACLE_READER.get(key).await?;
-            cache_lock.insert(key, value.clone());
+            let value = self.oracle_reader.get(key).await?;
+            cache_lock.put(key, value.clone());
             Ok(value)
         }
     }
@@ -56,9 +74,27 @@ impl PreimageOracleClient for CachingOracle {
             buf.copy_from_slice(value.as_slice());
             Ok(())
         } else {
-            ORACLE_READER.get_exact(key, buf).await?;
-            cache_lock.insert(key, buf.to_vec());
+            self.oracle_reader.get_exact(key, buf).await?;
+            cache_lock.put(key, buf.to_vec());
             Ok(())
         }
     }
+}
+
+#[async_trait]
+impl<OR, HW> HintWriterClient for CachingOracle<OR, HW>
+where
+    OR: PreimageOracleClient + Sync,
+    HW: HintWriterClient + Sync,
+{
+    async fn write(&self, hint: &str) -> Result<()> {
+        self.hint_writer.write(hint).await
+    }
+}
+
+impl<OR, HW> CommsClient for CachingOracle<OR, HW>
+where
+    OR: PreimageOracleClient + Sync + Clone,
+    HW: HintWriterClient + Sync + Clone,
+{
 }

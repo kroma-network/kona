@@ -13,7 +13,13 @@ publish = false
 anyhow.workspace = true
 tracing.workspace = true
 alloy-primitives = { workspace = true, features = ["serde"] }
-revm = { workspace = true, features = ["std", "c-kzg", "secp256k1", "portable", "blst"] }
+revm = { workspace = true, features = [
+    "std",
+    "c-kzg",
+    "secp256k1",
+    "portable",
+    "blst",
+] }
 alloy-eips.workspace = true
 alloy-consensus.workspace = true
 alloy-rlp.workspace = true
@@ -24,13 +30,15 @@ kona-client = { path = "../client", version = "0.1.0" }
 kona-common = { path = "../../crates/common", version = "0.0.2" }
 kona-preimage = { path = "../../crates/preimage", version = "0.0.2" }
 kona-mpt = { path = "../../crates/mpt", version = "0.0.2" }
-kona-derive = { path = "../../crates/derive", version = "0.0.2", features = ["online"] }
+kona-derive = { path = "../../crates/derive", version = "0.0.2", features = [
+    "online",
+] }
 
 # external
-alloy-provider = { version = "0.1" } 
-alloy-transport-http = { version = "0.1" } 
-alloy-rpc-client = { version = "0.1" } 
-alloy-rpc-types = { version = "0.1" } 
+alloy-provider = { version = "0.1" }
+alloy-transport-http = { version = "0.1" }
+alloy-rpc-client = { version = "0.1" }
+alloy-rpc-types = { version = "0.1" }
 reqwest = "0.12"
 tokio = { version = "1.37.0", features = ["full"] }
 futures = "0.3"
@@ -40,3 +48,8 @@ tracing-subscriber = "0.3.18"
 command-fds = { version = "0.3", features = ["tokio"] }
 tempfile = "3.10"
 serde_json = "1.0.117"
+cfg-if = "1.0.0"
+
+[features]
+default = []
+solo-client = []

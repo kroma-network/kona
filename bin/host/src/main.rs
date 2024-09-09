@@ -7,21 +7,17 @@ use crate::{
     cli::{init_tracing_subscriber, HostCli},
     server::PreimageServer,
 };
-use alloy_primitives::B256;
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use command_fds::{CommandFdExt, FdMapping};
 use fetcher::Fetcher;
 use futures::FutureExt;
-use kona_client::scenario::Scenario;
 use kona_common::FileDescriptor;
 use kona_derive::online::{OnlineBeaconClient, OnlineBlobProvider};
-use kona_preimage::{HintReader, OracleServer, PipeHandle, PreimageKey};
+use kona_preimage::{HintReader, OracleServer, PipeHandle};
 use kv::KeyValueStore;
 use std::{
-    collections::HashMap,
-    fs::File,
-    io::{stderr, stdin, stdout, BufReader},
+    io::{stderr, stdin, stdout},
     os::fd::AsFd,
     panic::AssertUnwindSafe,
     sync::Arc,
@@ -29,6 +25,15 @@ use std::{
 use tokio::{process::Command, sync::RwLock, task};
 use tracing::{error, info};
 use types::NativePipeFiles;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "solo-client")] {
+        use kona_client::scenario::Scenario;
+        use alloy_primitives::B256;
+        use kona_preimage::{PreimageKey};
+        use std::collections::{HashMap, fs::File, io::BufReader};
+    }
+}
 
 mod cli;
 mod fetcher;
@@ -44,6 +49,7 @@ async fn main() -> Result<()> {
     init_tracing_subscriber(cfg.v)?;
 
     if cfg.client {
+        #[cfg(feature = "solo-client")]
         start_solo_client(&cfg).await?;
     } else {
         if cfg.server {
@@ -57,6 +63,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "solo-client")]
 async fn start_solo_client(cfg: &HostCli) -> Result<()> {
     let json_file = File::open(cfg.json_path.clone().unwrap()).unwrap();
     let reader = BufReader::new(json_file);

@@ -24,7 +24,7 @@ fn main() -> Result<()> {
         ////////////////////////////////////////////////////////////////
         //                          PROLOGUE                          //
         ////////////////////////////////////////////////////////////////
-        let mut scenario = Scenario::new(None).await?;
+        let mut scenario = Scenario::new().await?;
         tracing::info!(
             target: "client",
             "Successfully get l1 end block number: {:?}",

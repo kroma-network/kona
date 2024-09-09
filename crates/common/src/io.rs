@@ -9,9 +9,12 @@ cfg_if! {
     if #[cfg(target_arch = "mips")] {
         #[doc = "Concrete implementation of the [BasicKernelInterface] trait for the `MIPS32rel1` target architecture."]
         pub type ClientIO = crate::cannon::io::CannonIO;
-    } else if #[cfg(any(target_arch = "riscv64", target_os = "zkvm"))] {
+    } else if #[cfg(target_arch = "riscv64")] {
         #[doc = "Concrete implementation of the [BasicKernelInterface] trait for the `riscv64` target architecture."]
         pub type ClientIO = crate::asterisc::io::AsteriscIO;
+    } else if #[cfg(target_os = "zkvm")] {
+        #[doc = "Concrete implementation of the [BasicKernelInterface] trait for the `SP1` target architecture."]
+        pub type ClientIO = crate::zkvm::io::ZkvmIO;
     } else {
         #[doc = "Concrete implementation of the [BasicKernelInterface] trait for the `native` target architecture."]
         pub type ClientIO = native_io::NativeIO;

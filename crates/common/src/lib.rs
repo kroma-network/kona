@@ -23,5 +23,8 @@ pub use executor::block_on;
 #[cfg(target_arch = "mips")]
 pub(crate) mod cannon;
 
-#[cfg(any(target_arch = "riscv64", target_os = "zkvm", target_os = "zkvm"))]
+#[cfg(any(target_arch = "riscv64"))]
 pub(crate) mod asterisc;
+
+#[cfg(target_os = "zkvm")]
+pub(crate) mod zkvm;

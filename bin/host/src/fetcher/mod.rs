@@ -375,8 +375,12 @@ where
             }
             HintType::StartingL2Output => {
                 const OUTPUT_ROOT_VERSION: u8 = 0;
+                #[cfg(not(feature = "kroma"))]
                 const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
                     address!("4200000000000000000000000000000000000016");
+                #[cfg(feature = "kroma")]
+                const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
+                    address!("4200000000000000000000000000000000000003");
 
                 if hint_data.len() != 32 {
                     anyhow::bail!("Invalid hint data length: {}", hint_data.len());

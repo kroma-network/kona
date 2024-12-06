@@ -33,9 +33,13 @@ serde.workspace = true
 serde_json.workspace = true
 rand.workspace = true
 criterion.workspace = true
-pprof.workspace = true 
+pprof.workspace = true
 alloy-rpc-types-engine.workspace = true
 
 [[bench]]
 name = "execution"
 harness = false
+
+[features]
+default = ["kroma"]
+kroma = []

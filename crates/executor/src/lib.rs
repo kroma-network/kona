@@ -379,9 +379,12 @@ where
     /// - `Err(_)`: If an error occurred while computing the output root.
     pub fn compute_output_root(&mut self) -> ExecutorResult<B256> {
         const OUTPUT_ROOT_VERSION: u8 = 0;
+        #[cfg(not(feature = "kroma"))]
         const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
             address!("4200000000000000000000000000000000000016");
-
+        #[cfg(feature = "kroma")]
+        const L2_TO_L1_MESSAGE_PASSER_ADDRESS: Address =
+            address!("4200000000000000000000000000000000000003");
         // Fetch the L2 to L1 message passer account from the cache or underlying trie.
         let storage_root = match self.trie_db.storage_roots().get(&L2_TO_L1_MESSAGE_PASSER_ADDRESS)
         {

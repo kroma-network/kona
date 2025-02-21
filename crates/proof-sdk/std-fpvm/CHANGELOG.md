@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/kroma-network/kona/compare/kona-std-fpvm-v0.1.2...kona-std-fpvm-v0.1.3) - 2025-02-21
+
+### Added
+
+- *(ci)* Remove support for features after MSRV (#1018)
+- *(build)* Migrate to `mips64r2` target for `cannon` (#943)
+
+### Other
+
+- Dep Updates (#980)
+
 ## [0.1.2](https://github.com/op-rs/kona/compare/kona-std-fpvm-v0.1.1...kona-std-fpvm-v0.1.2) - 2025-01-07
 
 ### Added

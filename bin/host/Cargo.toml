@@ -56,3 +56,7 @@ tracing-subscriber = { workspace = true, features = ["fmt"] }
 
 [dev-dependencies]
 proptest.workspace = true
+
+[features]
+default = ["kroma"]
+kroma = []

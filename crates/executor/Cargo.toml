@@ -46,3 +46,7 @@ pprof = { workspace = true, features = ["criterion", "flamegraph", "frame-pointe
 [[bench]]
 name = "execution"
 harness = false
+
+[features]
+default = ["kroma"]
+kroma = []

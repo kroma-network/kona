@@ -6,7 +6,10 @@ use alloy_primitives::{address, Address};
 pub(crate) const FEE_RECIPIENT: Address = address!("4200000000000000000000000000000000000011");
 
 /// The address of the L2 to L1 bridge predeploy.
+#[cfg(not(feature = "kroma"))]
 pub(crate) const L2_TO_L1_BRIDGE: Address = address!("4200000000000000000000000000000000000016");
+#[cfg(feature = "kroma")]
+pub(crate) const L2_TO_L1_BRIDGE: Address = address!("4200000000000000000000000000000000000003");
 
 /// The current version of the output root format.
 pub(crate) const OUTPUT_ROOT_VERSION: u8 = 0;
